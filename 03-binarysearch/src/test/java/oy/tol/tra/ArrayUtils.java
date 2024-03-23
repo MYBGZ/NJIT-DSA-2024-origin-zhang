@@ -53,4 +53,11 @@ public class ArrayUtils {
       }
       return array;
   }
+
+    public static void main(String[] args) {
+        String[] strings = ArrayUtils.generateStringArray(5);
+        for (String string : strings) {
+            System.out.println(string);
+        }
+    }
 }

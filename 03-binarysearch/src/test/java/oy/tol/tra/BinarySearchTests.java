@@ -54,7 +54,6 @@ public class BinarySearchTests {
             System.out.println("-- Starting the test with linear search --");
             Integer [] array = ArrayUtils.generateIntegerArray(50000);
             ThreadLocalRandom tlr = ThreadLocalRandom.current();
-
             int counter = NUMBERS_TO_SEARCH;
             long start = 0;
             long linearDuration = 0;

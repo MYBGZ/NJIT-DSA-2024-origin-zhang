@@ -24,7 +24,8 @@ public class StackImplementation<E> implements StackInterface<E> {
     */
    public StackImplementation() throws StackAllocationException {
       // TODO: call the constructor with size parameter with default size of 10.
-      
+      capacity = DEFAULT_STACK_SIZE;
+      itemArray = new Object[DEFAULT_STACK_SIZE];
    }
 
    /** TODO: Implement so that
@@ -35,49 +36,76 @@ public class StackImplementation<E> implements StackInterface<E> {
     * @throws StackAllocationException If cannot allocate room for the internal array.
     */
    public StackImplementation(int capacity) throws StackAllocationException {
-      
+      if (capacity < 2){
+         throw new StackAllocationException("It cannot be less than 2.");
+      }
+      this.capacity = capacity;
+      itemArray = new Object[capacity];
    }
 
    @Override
    public int capacity() {
       // TODO: Implement this
-      
+      return capacity;
    }
 
    @Override
    public void push(E element) throws StackAllocationException, NullPointerException {
       // TODO: Implement this
-               
+      if (element == null){
+         throw new NullPointerException("It's null.");
+      }         
+      if (currentIndex + 1 == capacity) {
+         capacity = capacity + 10;
+         Object[] array = new Object[capacity];
+         int k = 0;
+         while(k < currentIndex + 1){
+            array[k] = itemArray[k];
+            k = k + 1;
+         }
+         itemArray = array;
+      }
+      currentIndex = currentIndex + 1;
+      itemArray[currentIndex] = element;           
    }
 
    @SuppressWarnings("unchecked")
    @Override
    public E pop() throws StackIsEmptyException {
-      
+      if (isEmpty()) {
+         throw new StackIsEmptyException("It's null.");
+      }
+      E k = (E) itemArray[currentIndex];
+      itemArray[currentIndex] = null;
+      currentIndex = currentIndex -1;
+      return k; 
    }
 
    @SuppressWarnings("unchecked")
    @Override
    public E peek() throws StackIsEmptyException {
-      
+      if (isEmpty()){
+         throw new StackIsEmptyException("It's null.");
+      }
+      return (E) itemArray[currentIndex];     
    }
 
    @Override
    public int size() {
       // TODO: Implement this
-      
+      return currentIndex + 1;   
    }
 
    @Override
    public void clear() {
       // TODO: Implement this
-      
+      currentIndex = -1;
    }
 
    @Override
    public boolean isEmpty() {
       // TODO: Implement this
-      
+      return this.currentIndex == -1;
    }
 
    @Override
