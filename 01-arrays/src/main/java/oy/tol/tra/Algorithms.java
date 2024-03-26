@@ -4,6 +4,34 @@ import java.util.Arrays;
 
 public class Algorithms {
 
+    public static <T extends Comparable<T>> void sort(T [] array) {
+        int i = 0;
+      while (i < array.length) {
+         int j = array.length-1;
+         while (j > i) {
+            if (array[j].compareTo(array[j-1]) < 0) {
+               T tmp = array[j];
+               array[j] = array[j-1];
+               array[j-1] = tmp;
+         }
+         j--;
+      }
+      i++;
+   }
+    }
+
+
+    public static <T> void reverse(T [] array) {
+        int i = 0;
+        while (i < array.length/2) {
+         T temp = array[i];
+         array[i] = array[array.length-i-1];
+         array[array.length-i-1] = temp;
+         i++;
+     }
+    }
+
+
     public static int binarySearch(int target, Integer arr[],int begin,int end){
         if(begin <= end){
             int mid = begin + (end-begin) / 2;
@@ -35,31 +63,7 @@ public class Algorithms {
         return -1;
     }
 
-
-
-    public static void sort(Integer arr[]){
-        int n = arr.length;
-        boolean swapped;
-        for (int i = 0; i < n - 1; i++) {
-            swapped = false;
-            for (int j = 0; j < n - i - 1; j++) {
-                if(arr[j] > arr[j + 1]){
-                    int temp = arr[j];
-                    arr[j] = arr[j + 1];
-                    arr[j + 1] = temp;
-                    swapped = true;
-                }
-            }
-            if(!swapped){
-                break;
-            }
-        }
-
-    }
-
-    public static void sort(String str[]){
-        Arrays.sort(str);
-    }
+    
 
 
 }
