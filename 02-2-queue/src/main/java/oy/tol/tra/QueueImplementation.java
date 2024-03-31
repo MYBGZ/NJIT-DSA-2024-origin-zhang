@@ -48,25 +48,26 @@ public class QueueImplementation<E> implements QueueInterface<E> {
     * @throws QueueAllocationException If the reallocation for the queue failed in case queue needs reallocation.
     * @throws NullPointerException If the element is null.
     */
-   public void enqueue(E element) throws QueueAllocationException, NullPointerException{
-    if (element == null){
-        throw new NullPointerException("It's null.");
-    }
-    if (rear + 1 > capacity) {
-      int newcapacity = capacity*2;
-      Object[] newArray = new Object[newcapacity];
-      for (int i = 0; i < size; i++) {
-         newArray[i] = itemArray[front +i];
+    public void enqueue(E element) throws QueueAllocationException, NullPointerException{
+      if (element == null){
+          throw new NullPointerException("It's null.");
       }
-      capacity = newcapacity;
-      front = 0;
-      rear = size;
-      itemArray = newArray;
-    }
-    itemArray[rear] = element;
-    size++;
-    rear++;
-}
+      if (capacity == size) {
+          // Queue is full, need to resize
+          int newcapacity = capacity * 2;
+          Object[] newArray = new Object[newcapacity];
+          for (int i = 0; i < size; i++) {
+              newArray[i] = itemArray[(front + i) % capacity];
+          }
+          capacity = newcapacity;
+          itemArray = newArray;
+          front = 0;
+          rear = size;
+      }
+      itemArray[rear] = element;
+      rear = (rear + 1) % capacity;
+      size++;
+     }
 
    /**
     * Removes an element from the queue.
