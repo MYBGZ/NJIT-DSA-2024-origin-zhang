@@ -1,38 +1,55 @@
-package oy.tol.tra;
+package oy.tol.tira.books;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Deque;
-import java.util.Stack;
-import java.util.function.Predicate;
 
 public class Algorithms {
 
-    public static <T> void sortWithComparator(T[] array, Comparator<? super T> comparator) {
-        Arrays.sort(array, comparator);
+    public static <T extends Comparable<T>> void sort(T [] array) {
+        int i = 0;
+      while (i < array.length) {
+         int j = array.length-1;
+         while (j > i) {
+            if (array[j].compareTo(array[j-1]) < 0) {
+               T tmp = array[j];
+               array[j] = array[j-1];
+               array[j-1] = tmp;
+         }
+         j--;
+      }
+      i++;
+   }
+    }
+    
+    public static <T extends Comparable<T>> int binarySearch(T aValue, T [] fromArray, int fromIndex, int toIndex) {
+        for ( ;fromIndex <= toIndex; ) {
+            int a = fromIndex + (toIndex - fromIndex) / 2;
+            int b = aValue.compareTo(fromArray[a]);
+            if (b == 0) {
+                return a;
+            }
+            else if (b < 0) {
+                toIndex = a - 1;
+            }
+            else {
+                fromIndex = a + 1;
+            }
+        }
+        return -1;
     }
 
-    public static <T> int partitionByRule(T[] array, int count, Predicate<T> rule) {
-        int pivotIndex = 0;
-        while (pivotIndex < count && rule.test(array[pivotIndex])) {  
-            pivotIndex = pivotIndex + 1;  
-        }  
-        if (pivotIndex >= count) {
-            return count;
-        }
 
-        int nextIndex = pivotIndex + 1;
-        while (nextIndex != count) {
-            if (!rule.test(array[nextIndex])) {
-                T temp = array[pivotIndex];
-                array[pivotIndex] = array[nextIndex];
-                array[nextIndex] = temp;
-                pivotIndex = pivotIndex + 1;
-            }
-            nextIndex = nextIndex + 1;
-        }
-        return pivotIndex;
+
+
+    public static <T> void reverse(T [] array) {
+        int i = 0;
+        while (i < array.length/2) {
+         T temp = array[i];
+         array[i] = array[array.length-i-1];
+         array[array.length-i-1] = temp;
+         i++;
+     }
     }
 
     public static <E extends Comparable<E>> void fastSort(E[] array) {
@@ -84,5 +101,7 @@ public class Algorithms {
         number[i] = number[j];
         number[j] = a;
     }
-}
 
+    
+
+}
