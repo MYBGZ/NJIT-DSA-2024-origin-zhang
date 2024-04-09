@@ -58,70 +58,30 @@ public class KeyValueBSearchTree<K extends Comparable<K>, V> implements Dictiona
         if (key == null || value == null){
             throw new IllegalArgumentException("Key and value cannot be null!");
         }
-        TreeNode<K, V> Node = new TreeNode<>(key, value);
-        if (root == null) {  
-            root = Node;  
+        
+        TreeNode<K, V> newNode = new TreeNode<>(key, value);
+
+        if (root == null) {
+            root = newNode;
+            count++;
+            return true;
+        } else {
+            if(root.insert(key,value,key.hashCode())==1){
+                count++;
+            }
+            return true;
         }
-        else {    
-            if (insertNode(root, Node)) {  
-                count = count + 1;  
-            } else {  
-    
-            }  
-        }
-        return root != null;  
+
     }
 
 
-    private boolean insertNode(TreeNode<K, V> nowNode, TreeNode<K, V> Node) {
-        int i = Node.keyValue.getKey().compareTo(nowNode.keyValue.getKey());
-
-        if (i < 0) {
-            if (nowNode.left == null) {
-                Node.left = Node;
-                return true;
-            }
-            else {
-                return insertNode(Node.left, Node);
-            }
-        }
-        else if (i > 0) {
-            if (Node.right == null) {
-                Node.right = Node;
-                return true;
-            }
-            else {
-                return insertNode(Node.right, Node);
-            }
-        }
-        else {
-            Node.keyValue.setValue(Node.keyValue.getValue());
-            return false;
-        }
-    }
 
     @Override
     public V find(K key) throws IllegalArgumentException {
-        if (key == null)
+        if (key == null){
             throw new IllegalArgumentException("The key cannot be null!!!");
-
-        TreeNode<K, V> Node = root;
-
-        for(; Node != null; ) {
-            int a = key.compareTo(Node.keyValue.getKey());
-
-            if (a < 0) {
-                Node = Node.left;
-            }
-            else if (a > 0) {
-                Node = Node.right;
-            }
-            else {
-                return Node.keyValue.getValue();
-            }
         }
-
-        return null;
+        return (root.find(key,key.hashCode()));
     }
 
     @Override

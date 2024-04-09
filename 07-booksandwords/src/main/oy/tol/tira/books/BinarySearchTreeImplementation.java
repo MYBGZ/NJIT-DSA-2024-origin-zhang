@@ -8,31 +8,31 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
 
+class BinarySearchTreeImplementation implements Book {
 
-public class BinarySearchTreeImplementation implements Book {
-    private class WordCount {
-        WordCount(String word2, int i) {
-            word = "";
-            count = 0;
+    private class TreeNode {
+        TreeNode(String word) {
+            this.word = word;
+            this.count = 1;
         }
         String word;
         int count;
+        TreeNode left, right;
     }
-    
-    public static int UniqueWordCount = 0;
-    private int TotalWordCount = 0;
-    private int IgnoredWordsTotal = 0;
-    public static int MaxProbingSteps = 0;
-    private static final int MAX_WORD_LEN = 100;
-    public static int indexOfWordCount=0;
-    private WordCount root=null;
-    public static WordCount[] words = null;
+
+    private TreeNode root = null;
+    private TreeNode[] nodes;
+    private String bookFile = null;
     private String wordsToIgnoreFile = null;
     private WordFilter filter = null;
-    private String bookFile = null;
-    
+    private int uniqueWordCount = 0;
+    private int totalWordCount = 0;
+    private int ignoredWordsTotal = 0;
+    private long loopCount = 0;
+
     @Override
     public void setSource(String fileName, String ignoreWordsFile) throws FileNotFoundException {
+        // Check if both files exist. If not, throw an exception.
         boolean success = false;
         if (checkFile(fileName)) {
             bookFile = fileName;
@@ -46,6 +46,128 @@ public class BinarySearchTreeImplementation implements Book {
         }
     }
 
+    @Override
+    public void countUniqueWords() throws IOException, OutOfMemoryError {
+        if (bookFile == null || wordsToIgnoreFile == null) {
+            throw new IOException("No file(s) specified");
+        }
+        
+        uniqueWordCount = 0;
+        totalWordCount = 0;
+        loopCount = 0;
+        ignoredWordsTotal = 0;
+        root = null;
+        filter = new WordFilter();
+        
+        filter.readFile(wordsToIgnoreFile);
+
+        try (FileReader reader = new FileReader(bookFile, StandardCharsets.UTF_8)) {
+            int c;
+            StringBuilder wordBuilder = new StringBuilder();
+            while ((c = reader.read()) != -1) {
+                if (Character.isLetter(c)) {
+                    wordBuilder.append((char) c);
+                } else if (wordBuilder.length() > 0) {
+                    String word = wordBuilder.toString().toLowerCase(Locale.ROOT);
+                    if (!filter.shouldFilter(word) && word.length() >= 2) {
+                        root = addToTree(root, word);
+                        totalWordCount++;
+                    } else {
+                        ignoredWordsTotal++;
+                    }
+                    wordBuilder.setLength(0);
+                }
+            }
+            if (wordBuilder.length() > 0) {
+                String word = wordBuilder.toString().toLowerCase(Locale.ROOT);
+                if (!filter.shouldFilter(word) && word.length() >= 2) {
+                    root = addToTree(root, word);
+                    totalWordCount++;
+                } else {
+                    ignoredWordsTotal++;
+                }
+            }
+        }
+    }
+
+    private TreeNode addToTree(TreeNode node, String word) {
+        if (node == null) {
+            uniqueWordCount++;
+            return new TreeNode(word);
+        }
+        int hash1 = calcHash(word);
+        int hash2 = calcHash(node.word);
+        if (hash1 < hash2) {
+            node.left = addToTree(node.left, word);
+        } else if (hash1 > hash2) {
+            node.right = addToTree(node.right, word);
+        } else {
+            node.count++;
+        }
+        return node;
+    }
+
+    public void report() {
+        if (root == null) {
+            System.out.println("*** No words to report! ***");
+            return;
+        }
+        System.out.println("Listing words from a file: " + bookFile);
+        System.out.println("Ignoring words from a file: " + wordsToIgnoreFile);
+        System.out.println("Sorting the results...");
+
+        nodes = new TreeNode[uniqueWordCount];
+        int filledSize = fillArray(root, nodes, 0);
+
+        heapSort(nodes);
+
+        for (int i = 0; i < filledSize; i++) {
+            System.out.println(nodes[i].word + ": " + nodes[i].count);
+        }
+        System.out.println("The depth of the BST: " + maxDepth(root));
+        System.out.println("Count of words in total: " + totalWordCount);
+        System.out.println("Count of unique words:    " + uniqueWordCount);
+        System.out.println("Count of words to ignore:    " + filter.ignoreWordCount());
+        System.out.println("Ignored words count:      " + ignoredWordsTotal);
+    }
+
+    @Override
+    public void close() {
+        bookFile = null;
+        wordsToIgnoreFile = null;
+        root = null;
+        if (filter != null) {
+            filter.close();
+        }
+        filter = null;
+    }
+
+    @Override
+    public int getUniqueWordCount() {
+        return uniqueWordCount;
+    }
+
+    @Override
+    public int getTotalWordCount() {
+        return totalWordCount;
+    }
+
+    @Override
+    public String getWordInListAt(int position) {
+        if (nodes != null && position >= 0 && position < uniqueWordCount) {
+            return nodes[position].word;
+        }
+        return null;
+    }
+
+    @Override
+    public int getWordCountInListAt(int position) {
+        if (nodes != null && position >= 0 && position < uniqueWordCount) {
+            return nodes[position].count;
+        }
+        return -1;
+    }
+
     private boolean checkFile(String fileName) {
         if (fileName != null) {
             File file = new File(fileName);
@@ -56,130 +178,72 @@ public class BinarySearchTreeImplementation implements Book {
         return false;
     }
 
-    @Override
-    public void countUniqueWords() throws IOException, OutOfMemoryError {
-        if (bookFile == null || wordsToIgnoreFile == null) {
-            throw new IOException("There is no file specified");
+    private int calcHash(String key) {
+        int hash = 1;
+
+        for (char c : key.toCharArray()) {
+            hash = hash * 31 + c;
         }
-        UniqueWordCount = 0;
-        TotalWordCount = 0;
-        IgnoredWordsTotal = 0;
-        filter = new WordFilter();
-        filter.readFile(wordsToIgnoreFile);
-        FileReader reader = new FileReader(bookFile, StandardCharsets.UTF_8);
-        int i;
-        int[] array = new int[MAX_WORD_LEN];
-        int currentIndex = 0;
-        while ((i = reader.read()) != -1) {
-            if (Character.isLetter(i)) {
-                array[currentIndex] = i;
-                currentIndex++;
-            } else {
-                if (currentIndex > 0) {
-                    String word = new String(array, 0, currentIndex).toLowerCase(Locale.ROOT);
-                    currentIndex = 0;
-                    addToWords(new WordCount(word, 1));
-                }
-            }
-        }
-        if (currentIndex > 1) {
-            String word = new String(array, 0, currentIndex).toLowerCase(Locale.ROOT);
-            addToWords(new WordCount(word, 1));
-        }
-        reader.close();
+
+        return hash;
     }
 
-    private void addToWords(WordCount wordcount) throws OutOfMemoryError {
-        if (!filter.shouldFilter(wordcount.word) && wordcount.word.length() >= 2) {
-            if(root==null){
-                root=wordcount;
-                UniqueWordCount++;
-            }
-            else{
-                root.insert(wordcount, wordcount.hash);
-            }
-            TotalWordCount++;
+    private int fillArray(TreeNode node, TreeNode[] array, int index) {
+        if (node == null) {
+            return index;
         }
-        else {
-            IgnoredWordsTotal++;
-        }
-    }
-
-    private void Arrayreallocate(int nSize) throws OutOfMemoryError {
-        WordCount[] newWords = new WordCount[nSize];
-        for (int index = 0; index < nSize; index++) {
-            newWords[index] = words[index];
-        }
-        words = newWords;
+        index = fillArray(node.left, array, index);
+        array[index++] = node;
+        return fillArray(node.right, array, index);
     }
 
 
-    @Override
-    public void report() {
-        words=new WordCount[UniqueWordCount];
-        if (words == null) {
-            System.out.println("No report!");
-            return;
+    private void heapSort(TreeNode[] array) {
+        int n = array.length;
+
+        for (int i = n / 2 - 1; i >= 0; i--) {
+            heapify(array, n, i);
         }
-        System.out.println("List words from one file: " + bookFile);
-        System.out.println("Ignor words from one file: " + wordsToIgnoreFile);
-        System.out.println("Sort the results...");
-        System.out.println("...sorted.");
-        for (int index = 0; index < 100; index++) {
-            if (index>=words.length) {
-                break;
-            }
-            String word = String.format("%-20s", words[index].word).replace(' ', '.');
-            System.out.format("%4d. %s %6d%n", index + 1, word, words[index].count);
+
+        for (int i = n - 1; i > 0; i--) {
+            TreeNode temp = array[0];
+            array[0] = array[i];
+            array[i] = temp;
+
+            heapify(array, i, 0);
         }
-        System.out.println("The total count of word " + TotalWordCount);
-        System.out.println("The count of unique words:    " + UniqueWordCount);
-        System.out.println("The count of words to ignore:    " + filter.ignoreWordCount());
-        System.out.println("Ignored words count:      " + IgnoredWordsTotal);
-        System.out.println("Data of the BSearchTree: ");
-        System.out.println("Max ProbingSteps: " + MaxProbingSteps);
     }
 
+    private void heapify(TreeNode[] array, int n, int i) {
+        int max = i;
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
 
-    
-
-    @Override
-    public void close() {
-        root = null;
-        bookFile = null;
-        wordsToIgnoreFile = null;
-        if (filter != null) {
-            filter.close();
+        if (left < n && array[left].count < array[max].count) {
+            max = left;
         }
-        filter = null;
-    
-    }
 
-    
-
-    @Override
-    public int getUniqueWordCount() {
-        return UniqueWordCount;
-    }
-
-    @Override
-    public int getTotalWordCount() {
-        return TotalWordCount;
-    }
-
-    @Override
-    public String getWordInListAt(int position) {
-        if (words != null && position >= 0 && position < UniqueWordCount) {
-            return words[position].word;
+        if (right < n && array[right].count < array[max].count) {
+            max = right;
         }
-        return null;
+
+        if (max != i) {
+            TreeNode temp = array[i];
+            array[i] = array[max];
+            array[max] = temp;
+
+            heapify(array, n, max);
+        }
     }
 
-    @Override
-    public int getWordCountInListAt(int position) {
-        if (words != null && position >= 0 && position < UniqueWordCount) {
-            return words[position].count;
+    private int maxDepth(TreeNode node) {
+        if (node == null) {
+            return 0;
+        } else {
+            int leftDepth = maxDepth(node.left);
+            int rightDepth = maxDepth(node.right);
+
+            return Math.max(leftDepth, rightDepth) + 1;
         }
-        return -1;
     }
 }

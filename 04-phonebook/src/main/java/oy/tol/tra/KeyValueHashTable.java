@@ -72,6 +72,7 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
         return Math.abs(key.hashCode() % values.length);
     }
 
+
     @Override
     public boolean add(K key, V value) throws IllegalArgumentException, OutOfMemoryError {
         // TODO: Implement this.
@@ -83,30 +84,31 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
         // insert into table when the index has a null in it,
         // return true if existing Person updated or new Person inserted.
         
-        int htable = hash(key);
-        int pstep = 0;
-        int a = htable % values.length;
         if (key == null || value == null) {
             throw new IllegalArgumentException("The key and value can't be null!!!");
         }
         if (((double)count * (1.0 + LOAD_FACTOR)) >= values.length) {
             reallocate((int)((double)(values.length) * (1.0 / LOAD_FACTOR)));
         }
-        
-        for (;null != values[a]; ) {
-            if (values[a].getKey().equals(key)) {
-                values[a] = new Pair<>(key, value);
+        int hash = hash(key);
+        int index = hash % values.length;
+        int probingSteps = 0;
+
+        while (null != values[index]) {
+            if (values[index].getKey().equals(key)) {
+                values[index] = new Pair<>(key, value);
                 return true;
             }
-            a = (a + 1) % values.length;
-            pstep += 1;
-            maxProbingSteps = Math.max(maxProbingSteps, pstep);
-            collisionCount = collisionCount + 1;
+            index = (index + 1) % values.length;
+            probingSteps += 1;
+            maxProbingSteps = Math.max(maxProbingSteps, probingSteps);
+            collisionCount++;
         }
 
-        values[a] = new Pair<>(key, value);
+        values[index] = new Pair<>(key, value);
         count++;
         return true;
+
     }
 
     
@@ -116,19 +118,19 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
         if (key == null) {  
             throw new IllegalArgumentException("The key cannot be null!!!");  
         }  
-        int htable = hash(key);  
-        int a = htable % values.length;  
-        int pstep = 0;  
-        
-        for (; values[a] != null; a = (a + 1) % values.length) {  
-            if (values[a].getKey().equals(key)) {  
-                return values[a].getValue();  
-            }    
-            pstep += 1;   
-            maxProbingSteps = Math.max(maxProbingSteps, pstep);  
-        }  
-           
-        return null;  
+        int hash = hash(key);
+        int index = hash % values.length;
+        int probingSteps = 0;
+
+        while (values[index] != null) {
+            if (values[index].getKey().equals(key)) {
+                return values[index].getValue();
+            }
+            index = (index + 1) % values.length;
+            probingSteps += 1;
+            maxProbingSteps = Math.max(maxProbingSteps, probingSteps);
+        }
+        return null;
     }
 
     @Override
@@ -170,6 +172,5 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
 			      reallocate(newCapacity);
 		    } 
     }
- 
 }
 

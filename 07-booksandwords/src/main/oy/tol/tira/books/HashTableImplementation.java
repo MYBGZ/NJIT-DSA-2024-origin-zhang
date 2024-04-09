@@ -7,19 +7,24 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-public class HashTableImplementation implements Book {
+
+public class HashTableImplementation implements Book{
+
+    private static final int TABLE_SIZE = 1000;
+
     private class WordCount {
-        WordCount(String word2, int i) {
-            word = "";
-            count = 0;
-        }
         String word;
         int count;
+        WordCount next;
+
+        WordCount(String word) {
+            this.word = word;
+            this.count = 1;
+            this.next = null;
+        }
     }
 
-    private static final int MAX_WORDS = 100000;
     private static final int MAX_WORD_LEN = 100;
-    private static final double LOAD_FACTOR = 0.45;
     private WordCount[] words = null;
     private String bookFile = null;
     private String wordsToIgnoreFile = null;
@@ -27,9 +32,8 @@ public class HashTableImplementation implements Book {
     private int uniqueWordCount = 0;
     private int totalWordCount = 0;
     private int ignoredWordsTotal = 0;
-    private long collisionCount = 0;
-    private long reallocationCount = 0;
-    private int maxProbingSteps = 0;
+    private long loopCount = 0;
+    private int collisionCount = 0;
 
     @Override
     public void setSource(String fileName, String ignoreWordsFile) throws FileNotFoundException {
@@ -45,120 +49,47 @@ public class HashTableImplementation implements Book {
             throw new FileNotFoundException("Cannot find the specified files");
         }
     }
-    private boolean checkFile(String fileName) {
-        if (fileName != null) {
-            File file = new File(fileName);
-            if (file.exists() && !file.isDirectory()) {
-                return true;
-            }
-        }
-        return false;
-    }
+
     @Override
     public void countUniqueWords() throws IOException, OutOfMemoryError {
         if (bookFile == null || wordsToIgnoreFile == null) {
             throw new IOException("No file(s) specified");
         }
+        
         uniqueWordCount = 0;
         totalWordCount = 0;
-        collisionCount = 0;
+        loopCount = 0;
         ignoredWordsTotal = 0;
-        words = new WordCount[MAX_WORDS];
+        words = new WordCount[TABLE_SIZE];
         filter = new WordFilter();
+        
         filter.readFile(wordsToIgnoreFile);
-        FileReader reader = new FileReader(bookFile, StandardCharsets.UTF_8);
-        int i;
-        int[] array = new int[MAX_WORD_LEN];
-        int currentIndex = 0;
-        while ((i = reader.read()) != -1) {
-            if (Character.isLetter(i)) {
-                array[currentIndex] = i;
-                currentIndex++;
-            } else {
-                if (currentIndex > 0) {
-                    String word = new String(array, 0, currentIndex).toLowerCase(Locale.ROOT);
-                    // Reset the counter for the next word read.
-                    currentIndex = 0;
-                    addToWords(new WordCount(word, 1));
+
+        try (FileReader reader = new FileReader(bookFile, StandardCharsets.UTF_8)) {
+            int c;
+            StringBuilder wordBuilder = new StringBuilder(MAX_WORD_LEN);
+            while ((c = reader.read()) != -1) {
+                if (Character.isLetter(c)) {
+                    wordBuilder.append((char) c);
+                } else if (wordBuilder.length() > 0) {
+                    processWord(wordBuilder.toString().toLowerCase(Locale.ROOT));
+                    wordBuilder.setLength(0);
                 }
             }
+            if (wordBuilder.length() > 0) {
+                processWord(wordBuilder.toString().toLowerCase(Locale.ROOT));
+            }
         }
-        // Must check the last word in the file too. There may be chars in the array 
-        // not yet handled, when read() returns -1 to indicate EOF.
-        if (currentIndex > 1) {
-            String word = new String(array, 0, currentIndex).toLowerCase(Locale.ROOT);
-            addToWords(new WordCount(word, 1));
-        }
-        
-        // Close the file reader.
-        reader.close();
     }
 
-
-    private void addToWords(WordCount wordcount) throws OutOfMemoryError {
-        // Filter out too short words or words in filter list.
-        if (!filter.shouldFilter(wordcount.word) && wordcount.word.length() >= 2) {
-            // Checks if the LOAD_FACTOR has been exceeded --> if so, reallocates to a bigger hashtable.
-            if (((double)uniqueWordCount * (1.0 + LOAD_FACTOR)) >= words.length) {
-                reallocate((int)((double)(words.length) * (1.0 / LOAD_FACTOR)));
-            }
-
-            int hash=wordcount.hashCode();
-            int index=hash%words.length;
-            if(index<0){
-                index+=words.length;
-            }
-            // if index was taken by different WordCount (collision), get new hash and index,
-            int tmpIndex;
-            for(int i=0;;i++){
-                tmpIndex=(index+i*i)%words.length;
-                if(words[tmpIndex]==null){
-                // insert into table when the index has a null in it,
-                    words[tmpIndex]=wordcount;
-                    uniqueWordCount++;
-                    break;
-                }else if(words[tmpIndex].word.equals(wordcount.word)){
-                    //find the same word,count++
-                    words[tmpIndex].count+=1;
-                    break;
-                }
-                collisionCount++;
-                if(i>maxProbingSteps){
-                    maxProbingSteps=i;
-                }
-            }
+    private void processWord(String word) {
+        if (!filter.shouldFilter(word) && word.length() >= 2) {
+            addToWords(word);
+            totalWordCount++;
         } else {
             ignoredWordsTotal++;
         }
     }
-
-    private void reallocate(int newSize) throws OutOfMemoryError {
-        if (newSize < MAX_WORDS) {
-            newSize = MAX_WORDS;
-        }
-        reallocationCount++;
-        WordCount[] oldWords = words;
-        this.words = new WordCount[(int)((double)newSize * (1.0 + LOAD_FACTOR))];
-        uniqueWordCount = 0;
-        collisionCount = 0;
-        maxProbingSteps = 0;
-        for (int index = 0; index < oldWords.length; index++) {
-            if (oldWords[index] != null) {
-                addToWords(oldWords[index]);
-            }
-        }
-    }
-
-    private void Arrayreallocate(int newSize) throws OutOfMemoryError {
-        WordCount[] newWords = new WordCount[newSize];
-        for (int index = 0; index < newSize; index++) {
-            newWords[index] = words[index];
-            totalWordCount+=words[index].count;
-        }
-        words = newWords;
-     }
-
-
 
     @Override
     public void report() {
@@ -170,24 +101,24 @@ public class HashTableImplementation implements Book {
         System.out.println("Ignoring words from a file: " + wordsToIgnoreFile);
         System.out.println("Sorting the results...");
         
+        sortWords();
+        System.out.println("...sorted.");
 
-        for (int index = 0; index < 100; index++) {
-            if (index>=words.length) {
+        for (int index = 0; index < uniqueWordCount; index++) {
+            if (words[index].word.length() == 0) {
                 break;
             }
             String word = String.format("%-20s", words[index].word).replace(' ', '.');
             System.out.format("%4d. %s %6d%n", index + 1, word, words[index].count);
         }
+        System.out.println("Number of collisions: " + collisionCount);
         System.out.println("Count of words in total: " + totalWordCount);
         System.out.println("Count of unique words:    " + uniqueWordCount);
         System.out.println("Count of words to ignore:    " + filter.ignoreWordCount());
         System.out.println("Ignored words count:      " + ignoredWordsTotal);
-        System.out.println("Data of the HashTable: ");
-        System.out.println("Count of collision: " + collisionCount);
-        System.out.println("Count of reallocation: " + reallocationCount);
-        System.out.println("Max ProbingSteps: " + maxProbingSteps);
-        
+        System.out.println("How many times the inner loop rolled: " + loopCount);
     }
+
     @Override
     public void close() {
         bookFile = null;
@@ -198,14 +129,17 @@ public class HashTableImplementation implements Book {
         }
         filter = null;
     }
+
     @Override
     public int getUniqueWordCount() {
         return uniqueWordCount;
     }
+
     @Override
     public int getTotalWordCount() {
         return totalWordCount;
     }
+
     @Override
     public String getWordInListAt(int position) {
         if (words != null && position >= 0 && position < uniqueWordCount) {
@@ -213,6 +147,7 @@ public class HashTableImplementation implements Book {
         }
         return null;
     }
+
     @Override
     public int getWordCountInListAt(int position) {
         if (words != null && position >= 0 && position < uniqueWordCount) {
@@ -220,4 +155,103 @@ public class HashTableImplementation implements Book {
         }
         return -1;
     }
-}
+
+    private boolean checkFile(String fileName) {
+        if (fileName != null) {
+            File file = new File(fileName);
+            if (file.exists() && !file.isDirectory()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void sortWords() {
+        WordCount[] wordArray = new WordCount[uniqueWordCount];
+        int index = 0;
+
+        for (int i = 0; i < words.length && index < uniqueWordCount; i++) {
+            WordCount node = words[i];
+            while (node != null) {
+                wordArray[index++] = node;
+                node = node.next;
+            }
+        }
+
+        heapSort(wordArray);
+
+        words = wordArray;
+    }
+
+    private void heapSort(WordCount[] array) {
+        int n = array.length;
+
+        for (int i = n / 2 - 1; i >= 0; i--) {
+            heapify(array, n, i);
+        }
+
+        for (int i = n - 1; i > 0; i--) {
+            WordCount temp = array[0];
+            array[0] = array[i];
+            array[i] = temp;
+
+            heapify(array, i, 0);
+        }
+    }
+
+    private void heapify(WordCount[] array, int n, int i) {
+        int max = i;
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
+
+        if (left < n && array[left].count < array[max].count) {
+            max = left;
+        }
+
+        if (right < n && array[right].count < array[max].count) {
+            max = right;
+        }
+
+        if (max != i) {
+            WordCount temp = array[i];
+            array[i] = array[max];
+            array[max] = temp;
+
+            heapify(array, n, max);
+        }
+    }
+
+    private void addToWords(String word) throws OutOfMemoryError {
+        int hash = calcHash(word);
+        int index = hash % TABLE_SIZE;
+
+        WordCount current = words[index];
+        while (current != null) {
+            if (current.word.equals(word)) {
+                current.count++;
+                return;
+            }
+            current = current.next;
+        }
+
+        WordCount newNode = new WordCount(word);
+        newNode.next = words[index];
+        words[index] = newNode;
+        uniqueWordCount++;
+        collisionCount++;
+    }
+
+    private int calcHash(String key) {
+        int hash = 1;
+
+        for (char c : key.toCharArray()) {
+            hash = hash * 31 + c;
+        }
+
+        hash = hash % words.length;
+        if (hash < 0) {
+            hash += words.length;
+        }
+        return hash;
+    }
+    }
