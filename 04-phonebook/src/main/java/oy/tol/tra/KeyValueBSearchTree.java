@@ -59,8 +59,9 @@ public class KeyValueBSearchTree<K extends Comparable<K>, V> implements Dictiona
             throw new IllegalArgumentException("Key and value cannot be null!");
         }
         
-        TreeNode<K, V> newNode = new TreeNode<>(key, value);
 
+
+        TreeNode<K, V> newNode = new TreeNode<>(key, value);
         if (root == null) {
             root = newNode;
             count++;
@@ -81,6 +82,7 @@ public class KeyValueBSearchTree<K extends Comparable<K>, V> implements Dictiona
         if (key == null){
             throw new IllegalArgumentException("The key cannot be null!!!");
         }
+        
         return (root.find(key,key.hashCode()));
     }
 

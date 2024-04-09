@@ -87,9 +87,13 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
         if (key == null || value == null) {
             throw new IllegalArgumentException("The key and value can't be null!!!");
         }
+        
+        
         if (((double)count * (1.0 + LOAD_FACTOR)) >= values.length) {
             reallocate((int)((double)(values.length) * (1.0 / LOAD_FACTOR)));
         }
+        
+        
         int hash = hash(key);
         int index = hash % values.length;
         int probingSteps = 0;
@@ -99,6 +103,7 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
                 values[index] = new Pair<>(key, value);
                 return true;
             }
+            
             index = (index + 1) % values.length;
             probingSteps += 1;
             maxProbingSteps = Math.max(maxProbingSteps, probingSteps);
@@ -118,6 +123,8 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
         if (key == null) {  
             throw new IllegalArgumentException("The key cannot be null!!!");  
         }  
+        
+        
         int hash = hash(key);
         int index = hash % values.length;
         int probingSteps = 0;
@@ -155,9 +162,13 @@ public class KeyValueHashTable<K extends Comparable<K>, V> implements Dictionary
         reallocationCount++;
         Pair<K, V>[] oldPairs = values;
         this.values = (Pair<K, V>[]) new Pair[(int)((double)newSize * (1.0 + LOAD_FACTOR))];
+        
+        
         count = 0;
         collisionCount = 0;
         maxProbingSteps = 0;
+        
+        
         for (int index = 0; index < oldPairs.length; index++) {
             if (oldPairs[index] != null) {
                 add(oldPairs[index].getKey(), oldPairs[index].getValue());
